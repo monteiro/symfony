@@ -37,12 +37,12 @@ class SendFailedMessageToFailureTransportListener implements EventSubscriberInte
     {
         if (!$failureSender instanceof ServiceLocator) {
             trigger_deprecation('symfony/messenger', '5.2', 'Passing failureTransports should now pass a ServiceLocator', __METHOD__);
-        } 
-        
+        }
+
         $this->failureSender = $failureSender;
         $this->logger = $logger;
     }
-    
+
     public function onMessageFailed(WorkerMessageFailedEvent $event)
     {
         if ($event->willRetry()) {
@@ -68,10 +68,10 @@ class SendFailedMessageToFailureTransportListener implements EventSubscriberInte
         );
 
         $failureSender = $this->getFailureSender($event->getReceiverName());
-        if ($failureSender === null) {
+        if (null === $failureSender) {
             return;
         }
-        
+
         if (null !== $this->logger) {
             $this->logger->info('Rejected message {class} will be sent to the failure transport {transport}.', [
                 'class' => \get_class($envelope->getMessage()),
@@ -94,7 +94,7 @@ class SendFailedMessageToFailureTransportListener implements EventSubscriberInte
         if ($this->failureSender instanceof ServiceLocator && $this->failureSender->has($receiverName)) {
             return $this->failureSender->get($receiverName);
         }
-        
+
         return $this->failureSender;
     }
 }
