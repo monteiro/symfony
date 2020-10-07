@@ -1796,7 +1796,7 @@ class FrameworkExtension extends Extension
                 ->replaceArgument(2, $config['serializer']['symfony_serializer']['context']);
             $container->setAlias('messenger.default_serializer', $config['serializer']['default_serializer']);
         }
-        
+
         $senderAliases = [];
         $transportRetryReferences = [];
         foreach ($config['transports'] as $name => $transport) {
@@ -1807,7 +1807,7 @@ class FrameworkExtension extends Extension
                 ->setArguments([$transport['dsn'], $transport['options'] + ['transport_name' => $name], new Reference($serializerId)])
                 ->addTag('messenger.receiver', [
                         'alias' => $name,
-                        'failure_transport' => $transport['failure_transport'] ?? null
+                        'failure_transport' => $transport['failure_transport'] ?? null,
                     ]
                 )
             ;
@@ -1878,11 +1878,11 @@ class FrameworkExtension extends Extension
             if (!isset($senderReferences[$config['failure_transport']])) {
                 throw new LogicException(sprintf('Invalid Messenger configuration: the failure transport "%s" is not a valid transport or service id.', $config['failure_transport']));
             }
-            
+
             $failureTransports[$config['failure_transport']] = $senderReferences[$config['failure_transport']];
             $container->setAlias('messenger.failure_transports.default', $config['failure_transport']);
         }
-        
+
         foreach ($config['transports'] as $name => $transport) {
             if ($transport['failure_transport']) {
                 if (!isset($config['transports'][$transport['failure_transport']])) {

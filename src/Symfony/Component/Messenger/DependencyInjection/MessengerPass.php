@@ -253,23 +253,23 @@ class MessengerPass implements CompilerPassInterface
     {
         $receiverMapping = [];
         $failureTransportsMap = [];
-        
+
         $globalFailureTransportId = 'messenger.failure_transports.default';
         if ($container->hasAlias($globalFailureTransportId)) {
             $globalFailureTransport = (string) $container->getAlias($globalFailureTransportId);
-            if ($globalFailureTransport !== null) {
-                $failureTransportsMap[$globalFailureTransport] = new Reference('messenger.transport.' . $globalFailureTransport);
+            if (null !== $globalFailureTransport) {
+                $failureTransportsMap[$globalFailureTransport] = new Reference('messenger.transport.'.$globalFailureTransport);
             }
         }
-        
+
         foreach ($container->findTaggedServiceIds($this->receiverTag) as $id => $tags) {
             $receiverClass = $this->getServiceClass($container, $id);
-            
+
             $tag = current($tags);
-            if (isset($tag['failure_transport']) && $tag['failure_transport'] !== null) {
+            if (isset($tag['failure_transport']) && null !== $tag['failure_transport']) {
                 $failureTransportsMap[$tag['failure_transport']] = new Reference('messenger.transport.'.$tag['failure_transport']);
             }
-            
+
             if (!is_subclass_of($receiverClass, ReceiverInterface::class)) {
                 throw new RuntimeException(sprintf('Invalid receiver "%s": class "%s" must implement interface "%s".', $id, $receiverClass, ReceiverInterface::class));
             }
@@ -314,11 +314,11 @@ class MessengerPass implements CompilerPassInterface
         }
 
         $container->getDefinition('messenger.receiver_locator')->replaceArgument(0, $receiverMapping);
-        
+
         $failureTransportsLocator = (new Definition(ServiceLocator::class))
             ->addArgument($failureTransportsMap)
             ->addTag('container.service_locator');
-        
+
         $failedCommandIds = [
             'console.command.messenger_failed_messages_retry',
             'console.command.messenger_failed_messages_show',
