@@ -1869,8 +1869,8 @@ class FrameworkExtension extends Extension
 
         $container->getDefinition('messenger.retry_strategy_locator')
             ->replaceArgument(0, $transportRetryReferences);
-
-        $failureTransports = [];
+        
+        $hasFailureTransports = false;
         $failureTransportsByTransportName = [];
         $failureTransportsByTransportNameServiceLocatorId = 'messenger.failure_transports_by_transport_name.locator';
 
@@ -1879,6 +1879,7 @@ class FrameworkExtension extends Extension
                 throw new LogicException(sprintf('Invalid Messenger configuration: the failure transport "%s" is not a valid transport or service id.', $config['failure_transport']));
             }
 
+            $hasFailureTransports = true;
             $failureTransports[$config['failure_transport']] = $senderReferences[$config['failure_transport']];
             $container->setAlias('messenger.failure_transports.default', $config['failure_transport']);
         }
@@ -1890,13 +1891,13 @@ class FrameworkExtension extends Extension
                 }
 
                 $failureTransportsByTransportName[$name] = $senderReferences[$transport['failure_transport']];
-                $failureTransports[$transport['failure_transport']] = $senderReferences[$transport['failure_transport']];
+                $hasFailureTransports = true;
             } else {
                 $failureTransportsByTransportName[$name] = $senderReferences[$config['failure_transport']] ?? null;
             }
         }
 
-        if (\count($failureTransports) > 0) {
+        if ($hasFailureTransports) {
             $globalFailureReceiver = $config['failure_transport'] ?? null;
             $container->getDefinition('console.command.messenger_failed_messages_retry')
                 ->replaceArgument(0, $globalFailureReceiver);
