@@ -1880,7 +1880,7 @@ class FrameworkExtension extends Extension
             }
             
             $failureTransports[$config['failure_transport']] = $senderReferences[$config['failure_transport']];
-            $container->setAlias('messenger.failure_transports.default_transport', $config['failure_transport']);
+            $container->setAlias('messenger.failure_transports.default', $config['failure_transport']);
         }
         
         foreach ($config['transports'] as $name => $transport) {
@@ -1899,8 +1899,7 @@ class FrameworkExtension extends Extension
         if (\count($failureTransports) > 0) {
             $globalFailureReceiver = $config['failure_transport'] ?? null;
             $container->getDefinition('console.command.messenger_failed_messages_retry')
-                ->replaceArgument(0, $globalFailureReceiver)
-                ->replaceArgument(1, $senderReferences[$config['failure_transport']] ?? null);
+                ->replaceArgument(0, $globalFailureReceiver);
             $container->getDefinition('console.command.messenger_failed_messages_show')
                 ->replaceArgument(0, $globalFailureReceiver);
             $container->getDefinition('console.command.messenger_failed_messages_remove')

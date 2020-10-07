@@ -19,6 +19,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Exception\RuntimeException;
 use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\Messenger\Handler\HandlerDescriptor;
 use Symfony\Component\Messenger\Handler\HandlersLocator;
 use Symfony\Component\Messenger\Handler\MessageSubscriberInterface;
@@ -251,14 +252,22 @@ class MessengerPass implements CompilerPassInterface
     private function registerReceivers(ContainerBuilder $container, array $busIds)
     {
         $receiverMapping = [];
-        $failureTransportsMapping = [];
+        $failureTransportsMap = [];
+        
+        $globalFailureTransportId = 'messenger.failure_transports.default';
+        if ($container->hasAlias($globalFailureTransportId)) {
+            $globalFailureTransport = (string) $container->getAlias($globalFailureTransportId);
+            if ($globalFailureTransport !== null) {
+                $failureTransportsMap[$globalFailureTransport] = new Reference('messenger.transport.' . $globalFailureTransport);
+            }
+        }
         
         foreach ($container->findTaggedServiceIds($this->receiverTag) as $id => $tags) {
             $receiverClass = $this->getServiceClass($container, $id);
             
             $tag = current($tags);
             if (isset($tag['failure_transport']) && $tag['failure_transport'] !== null) {
-                $failureTransportsMapping[$tag['failure_transport']] = new Reference($tag['failure_transport']);
+                $failureTransportsMap[$tag['failure_transport']] = new Reference('messenger.transport.'.$tag['failure_transport']);
             }
             
             if (!is_subclass_of($receiverClass, ReceiverInterface::class)) {
@@ -305,7 +314,11 @@ class MessengerPass implements CompilerPassInterface
         }
 
         $container->getDefinition('messenger.receiver_locator')->replaceArgument(0, $receiverMapping);
-
+        
+        $failureTransportsLocator = (new Definition(ServiceLocator::class))
+            ->addArgument($failureTransportsMap)
+            ->addTag('container.service_locator');
+        
         $failedCommandIds = [
             'console.command.messenger_failed_messages_retry',
             'console.command.messenger_failed_messages_show',
@@ -314,7 +327,7 @@ class MessengerPass implements CompilerPassInterface
         foreach ($failedCommandIds as $failedCommandId) {
             if ($container->hasDefinition($failedCommandId)) {
                 $definition = $container->getDefinition($failedCommandId);
-                $definition->replaceArgument(1, $receiverMapping[$definition->getArgument(0)]);
+                $definition->replaceArgument(1, $failureTransportsLocator);
             }
         }
     }
