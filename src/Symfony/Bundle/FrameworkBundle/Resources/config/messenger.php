@@ -131,13 +131,6 @@ return static function (ContainerConfigurator $container) {
 
         ->set('messenger.transport.beanstalkd.factory', BeanstalkdTransportFactory::class)
 
-        // failed transports
-        ->set('messenger.failure_transports_by_transport_name.locator', ServiceLocator::class)
-            ->args([
-                abstract_arg('failed transports map by transport name'),
-            ])
-            ->tag('container.service_locator')
-
         // retry
         ->set('messenger.retry_strategy_locator')
             ->args([

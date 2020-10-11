@@ -1872,7 +1872,6 @@ class FrameworkExtension extends Extension
         
         $hasFailureTransports = false;
         $failureTransportsByTransportName = [];
-        $failureTransportsByTransportNameServiceLocatorId = 'messenger.failure_transports_by_transport_name.locator';
 
         if ($config['failure_transport']) {
             if (!isset($senderReferences[$config['failure_transport']])) {
@@ -1906,9 +1905,7 @@ class FrameworkExtension extends Extension
             $container->getDefinition('console.command.messenger_failed_messages_remove')
                 ->replaceArgument(0, $globalFailureReceiver);
 
-            $failureTransportsByTransportNameServiceLocator = ServiceLocatorTagPass::register($container, $failureTransportsByTransportName, $failureTransportsByTransportNameServiceLocatorId);
-            $container->getDefinition($failureTransportsByTransportNameServiceLocatorId)
-                ->replaceArgument(0, $failureTransportsByTransportName);
+            $failureTransportsByTransportNameServiceLocator = ServiceLocatorTagPass::register($container, $failureTransportsByTransportName);
             $container->getDefinition('messenger.failure.send_failed_message_to_failure_transport_listener')
                 ->replaceArgument(0, $failureTransportsByTransportNameServiceLocator);
         } else {
