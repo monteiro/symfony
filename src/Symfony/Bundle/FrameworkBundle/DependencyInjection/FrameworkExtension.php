@@ -1879,7 +1879,6 @@ class FrameworkExtension extends Extension
             }
 
             $hasFailureTransports = true;
-            $failureTransports[$config['failure_transport']] = $senderReferences[$config['failure_transport']];
             $container->setAlias('messenger.failure_transports.default', $config['failure_transport']);
         }
 

@@ -165,7 +165,7 @@ return static function (ContainerConfigurator $container) {
 
         ->set('console.command.messenger_failed_messages_retry', FailedMessagesRetryCommand::class)
             ->args([
-                abstract_arg('Receiver name'),
+                abstract_arg('Default failure receiver name'),
                 abstract_arg('Receiver'),
                 service('messenger.routable_message_bus'),
                 service('event_dispatcher'),
@@ -175,14 +175,14 @@ return static function (ContainerConfigurator $container) {
 
         ->set('console.command.messenger_failed_messages_show', FailedMessagesShowCommand::class)
             ->args([
-                abstract_arg('Receiver name'),
+                abstract_arg('Default failure receiver name'),
                 abstract_arg('Receivers'),
             ])
             ->tag('console.command', ['command' => 'messenger:failed:show'])
 
         ->set('console.command.messenger_failed_messages_remove', FailedMessagesRemoveCommand::class)
             ->args([
-                abstract_arg('Receiver name'),
+                abstract_arg('Default failure receiver name'),
                 abstract_arg('Receivers'),
             ])
             ->tag('console.command', ['command' => 'messenger:failed:remove'])

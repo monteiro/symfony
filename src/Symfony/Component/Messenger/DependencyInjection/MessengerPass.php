@@ -257,9 +257,7 @@ class MessengerPass implements CompilerPassInterface
         $globalFailureTransportId = 'messenger.failure_transports.default';
         if ($container->hasAlias($globalFailureTransportId)) {
             $globalFailureTransport = (string) $container->getAlias($globalFailureTransportId);
-            if (null !== $globalFailureTransport) {
-                $failureTransportsMap[$globalFailureTransport] = new Reference('messenger.transport.'.$globalFailureTransport);
-            }
+            $failureTransportsMap[$globalFailureTransport] = new Reference('messenger.transport.'.$globalFailureTransport);
         }
 
         foreach ($container->findTaggedServiceIds($this->receiverTag) as $id => $tags) {
