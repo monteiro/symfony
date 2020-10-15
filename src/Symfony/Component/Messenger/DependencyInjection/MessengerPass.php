@@ -263,11 +263,6 @@ class MessengerPass implements CompilerPassInterface
         foreach ($container->findTaggedServiceIds($this->receiverTag) as $id => $tags) {
             $receiverClass = $this->getServiceClass($container, $id);
 
-            $tag = current($tags);
-            if (isset($tag['failure_transport']) && null !== $tag['failure_transport']) {
-                $failureTransportsMap[$tag['failure_transport']] = new Reference('messenger.transport.'.$tag['failure_transport']);
-            }
-
             if (!is_subclass_of($receiverClass, ReceiverInterface::class)) {
                 throw new RuntimeException(sprintf('Invalid receiver "%s": class "%s" must implement interface "%s".', $id, $receiverClass, ReceiverInterface::class));
             }
@@ -277,6 +272,9 @@ class MessengerPass implements CompilerPassInterface
             foreach ($tags as $tag) {
                 if (isset($tag['alias'])) {
                     $receiverMapping[$tag['alias']] = $receiverMapping[$id];
+                    if (isset($tag['failure_transport']) && null !== $tag['failure_transport']) {
+                        $failureTransportsMap[$tag['alias']] = $receiverMapping[$id];
+                    }
                 }
             }
         }
@@ -313,6 +311,7 @@ class MessengerPass implements CompilerPassInterface
 
         $container->getDefinition('messenger.receiver_locator')->replaceArgument(0, $receiverMapping);
 
+        
         $failureTransportsLocator = (new Definition(ServiceLocator::class))
             ->addArgument($failureTransportsMap)
             ->addTag('container.service_locator');

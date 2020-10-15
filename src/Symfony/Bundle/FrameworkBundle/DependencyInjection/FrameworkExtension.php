@@ -1796,16 +1796,20 @@ class FrameworkExtension extends Extension
                 ->replaceArgument(2, $config['serializer']['symfony_serializer']['context']);
             $container->setAlias('messenger.default_serializer', $config['serializer']['default_serializer']);
         }
-
-        $failureTransportsByTransportName = [];
-        $failureTransports = [];
         
+        $failureTransports = [];
         if ($config['failure_transport']) {
-            $hasFailureTransports = true;
+            if (!isset($config['transports'][$config['failure_transport']])) {
+                throw new LogicException(sprintf('Invalid Messenger configuration: the failure transport "%s" is not a valid transport or service id.', $config['failure_transport']));
+            }
+            
             $container->setAlias('messenger.failure_transports.default', $config['failure_transport']);
             $failureTransports[] = $config['failure_transport'];
         }
         foreach ($config['transports'] as $name => $transport) {
+            if (isset($transport['failure_transport']) && !isset($config['transports'][$transport['failure_transport']])) {
+                throw new LogicException(sprintf('Invalid Messenger configuration: the failure transport "%s" is not a valid transport or service id.', $transport['failure_transport']));
+            }
             if ($transport['failure_transport']) {
                 $failureTransports[] = $transport['failure_transport'];
             }
@@ -1858,6 +1862,20 @@ class FrameworkExtension extends Extension
         foreach ($senderAliases as $serviceId) {
             $senderReferences[$serviceId] = new Reference($serviceId);
         }
+        
+
+        $failureTransportsByTransportName = [];
+        foreach ($config['transports'] as $name => $transport) {
+            if ($transport['failure_transport']) {
+                if (!isset($config['transports'][$transport['failure_transport']])) {
+                    throw new LogicException(sprintf('Invalid Messenger configuration: the failure transport "%s" is not a valid transport or service id.', $transport['failure_transport']));
+                }
+
+                $failureTransportsByTransportName[$name] = $senderReferences[$transport['failure_transport']];
+            } else {
+                $failureTransportsByTransportName[$name] = $senderReferences[$config['failure_transport']] ?? null;
+            }
+        }
 
         $messageToSendersMapping = [];
         foreach ($config['routing'] as $message => $messageConfiguration) {
@@ -1891,6 +1909,7 @@ class FrameworkExtension extends Extension
         
         if (count($failureTransports) > 0) {
             $globalFailureReceiver = $config['failure_transport'] ?? null;
+            
             $container->getDefinition('console.command.messenger_failed_messages_retry')
                 ->replaceArgument(0, $globalFailureReceiver);
             $container->getDefinition('console.command.messenger_failed_messages_show')
