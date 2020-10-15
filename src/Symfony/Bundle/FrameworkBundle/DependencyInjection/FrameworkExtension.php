@@ -1797,17 +1797,36 @@ class FrameworkExtension extends Extension
             $container->setAlias('messenger.default_serializer', $config['serializer']['default_serializer']);
         }
 
+        $failureTransportsByTransportName = [];
+        $failureTransports = [];
+        
+        if ($config['failure_transport']) {
+            $hasFailureTransports = true;
+            $container->setAlias('messenger.failure_transports.default', $config['failure_transport']);
+            $failureTransports[] = $config['failure_transport'];
+        }
+        foreach ($config['transports'] as $name => $transport) {
+            if ($transport['failure_transport']) {
+                $failureTransports[] = $transport['failure_transport'];
+            }
+        }
+        
         $senderAliases = [];
         $transportRetryReferences = [];
         foreach ($config['transports'] as $name => $transport) {
             $serializerId = $transport['serializer'] ?? 'messenger.default_serializer';
 
+            $isFailureTransport = false;
+            if (in_array($name, $failureTransports)) {
+                $isFailureTransport = true;
+            }
+            
             $transportDefinition = (new Definition(TransportInterface::class))
                 ->setFactory([new Reference('messenger.transport_factory'), 'createTransport'])
                 ->setArguments([$transport['dsn'], $transport['options'] + ['transport_name' => $name], new Reference($serializerId)])
                 ->addTag('messenger.receiver', [
                         'alias' => $name,
-                        'failure_transport' => $transport['failure_transport'] ?? null,
+                        'failure_transport' => $isFailureTransport,
                     ]
                 )
             ;
@@ -1870,32 +1889,7 @@ class FrameworkExtension extends Extension
         $container->getDefinition('messenger.retry_strategy_locator')
             ->replaceArgument(0, $transportRetryReferences);
         
-        $hasFailureTransports = false;
-        $failureTransportsByTransportName = [];
-
-        if ($config['failure_transport']) {
-            if (!isset($senderReferences[$config['failure_transport']])) {
-                throw new LogicException(sprintf('Invalid Messenger configuration: the failure transport "%s" is not a valid transport or service id.', $config['failure_transport']));
-            }
-
-            $hasFailureTransports = true;
-            $container->setAlias('messenger.failure_transports.default', $config['failure_transport']);
-        }
-
-        foreach ($config['transports'] as $name => $transport) {
-            if ($transport['failure_transport']) {
-                if (!isset($config['transports'][$transport['failure_transport']])) {
-                    throw new LogicException(sprintf('Invalid Messenger configuration: the failure transport "%s" is not a valid transport or service id.', $transport['failure_transport']));
-                }
-
-                $failureTransportsByTransportName[$name] = $senderReferences[$transport['failure_transport']];
-                $hasFailureTransports = true;
-            } else {
-                $failureTransportsByTransportName[$name] = $senderReferences[$config['failure_transport']] ?? null;
-            }
-        }
-
-        if ($hasFailureTransports) {
+        if (count($failureTransports) > 0) {
             $globalFailureReceiver = $config['failure_transport'] ?? null;
             $container->getDefinition('console.command.messenger_failed_messages_retry')
                 ->replaceArgument(0, $globalFailureReceiver);
