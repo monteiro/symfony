@@ -311,7 +311,6 @@ class MessengerPass implements CompilerPassInterface
 
         $container->getDefinition('messenger.receiver_locator')->replaceArgument(0, $receiverMapping);
 
-        
         $failureTransportsLocator = (new Definition(ServiceLocator::class))
             ->addArgument($failureTransportsMap)
             ->addTag('container.service_locator');
