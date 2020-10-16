@@ -1819,18 +1819,12 @@ class FrameworkExtension extends Extension
         $transportRetryReferences = [];
         foreach ($config['transports'] as $name => $transport) {
             $serializerId = $transport['serializer'] ?? 'messenger.default_serializer';
-
-            $isFailureTransport = false;
-            if (\in_array($name, $failureTransports)) {
-                $isFailureTransport = true;
-            }
-
             $transportDefinition = (new Definition(TransportInterface::class))
                 ->setFactory([new Reference('messenger.transport_factory'), 'createTransport'])
                 ->setArguments([$transport['dsn'], $transport['options'] + ['transport_name' => $name], new Reference($serializerId)])
                 ->addTag('messenger.receiver', [
                         'alias' => $name,
-                        'failure_transport' => $isFailureTransport,
+                        'failure_transport' => \in_array($name, $failureTransports),
                     ]
                 )
             ;
@@ -1907,14 +1901,14 @@ class FrameworkExtension extends Extension
             ->replaceArgument(0, $transportRetryReferences);
 
         if (\count($failureTransports) > 0) {
-            $globalFailureReceiver = $config['failure_transport'] ?? null;
+            $globalFailureReceiverName = $config['failure_transport'] ?? null;
 
             $container->getDefinition('console.command.messenger_failed_messages_retry')
-                ->replaceArgument(0, $globalFailureReceiver);
+                ->replaceArgument(0, $globalFailureReceiverName);
             $container->getDefinition('console.command.messenger_failed_messages_show')
-                ->replaceArgument(0, $globalFailureReceiver);
+                ->replaceArgument(0, $globalFailureReceiverName);
             $container->getDefinition('console.command.messenger_failed_messages_remove')
-                ->replaceArgument(0, $globalFailureReceiver);
+                ->replaceArgument(0, $globalFailureReceiverName);
 
             $failureTransportsByTransportNameServiceLocator = ServiceLocatorTagPass::register($container, $failureTransportsByTransportName);
             $container->getDefinition('messenger.failure.send_failed_message_to_failure_transport_listener')

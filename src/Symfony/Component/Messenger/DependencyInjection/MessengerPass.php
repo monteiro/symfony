@@ -253,13 +253,14 @@ class MessengerPass implements CompilerPassInterface
     {
         $receiverMapping = [];
         $failureTransportsMap = [];
-
-        $globalFailureTransportId = 'messenger.failure_transports.default';
-        if ($container->hasAlias($globalFailureTransportId)) {
-            $globalFailureTransport = (string) $container->getAlias($globalFailureTransportId);
-            $failureTransportsMap[$globalFailureTransport] = new Reference('messenger.transport.'.$globalFailureTransport);
+        
+        $commandDefinition = $container->getDefinition('console.command.messenger_failed_messages_retry');
+        
+        $globalReceiverName = $commandDefinition->getArgument(0);
+        if ($globalReceiverName !== null) {
+            $failureTransportsMap[$commandDefinition->getArgument(0)] = new Reference('messenger.failure_transports.default');    
         }
-
+        
         foreach ($container->findTaggedServiceIds($this->receiverTag) as $id => $tags) {
             $receiverClass = $this->getServiceClass($container, $id);
 
@@ -310,10 +311,8 @@ class MessengerPass implements CompilerPassInterface
         }
 
         $container->getDefinition('messenger.receiver_locator')->replaceArgument(0, $receiverMapping);
-
-        $failureTransportsLocator = (new Definition(ServiceLocator::class))
-            ->addArgument($failureTransportsMap)
-            ->addTag('container.service_locator');
+        
+        $failureTransportsLocator = ServiceLocatorTagPass::register($container, $failureTransportsMap);
 
         $failedCommandIds = [
             'console.command.messenger_failed_messages_retry',
