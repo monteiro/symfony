@@ -19,7 +19,6 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Exception\RuntimeException;
 use Symfony\Component\DependencyInjection\Reference;
-use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\Messenger\Handler\HandlerDescriptor;
 use Symfony\Component\Messenger\Handler\HandlersLocator;
 use Symfony\Component\Messenger\Handler\MessageSubscriberInterface;
@@ -253,14 +252,14 @@ class MessengerPass implements CompilerPassInterface
     {
         $receiverMapping = [];
         $failureTransportsMap = [];
-        
+
         $commandDefinition = $container->getDefinition('console.command.messenger_failed_messages_retry');
-        
+
         $globalReceiverName = $commandDefinition->getArgument(0);
-        if ($globalReceiverName !== null) {
-            $failureTransportsMap[$commandDefinition->getArgument(0)] = new Reference('messenger.failure_transports.default');    
+        if (null !== $globalReceiverName) {
+            $failureTransportsMap[$commandDefinition->getArgument(0)] = new Reference('messenger.failure_transports.default');
         }
-        
+
         foreach ($container->findTaggedServiceIds($this->receiverTag) as $id => $tags) {
             $receiverClass = $this->getServiceClass($container, $id);
 
@@ -311,7 +310,7 @@ class MessengerPass implements CompilerPassInterface
         }
 
         $container->getDefinition('messenger.receiver_locator')->replaceArgument(0, $receiverMapping);
-        
+
         $failureTransportsLocator = ServiceLocatorTagPass::register($container, $failureTransportsMap);
 
         $failedCommandIds = [
