@@ -166,7 +166,7 @@ return static function (ContainerConfigurator $container) {
         ->set('console.command.messenger_failed_messages_retry', FailedMessagesRetryCommand::class)
             ->args([
                 abstract_arg('Default failure receiver name'),
-                abstract_arg('Receiver'),
+                abstract_arg('Receivers'),
                 service('messenger.routable_message_bus'),
                 service('event_dispatcher'),
                 service('logger'),

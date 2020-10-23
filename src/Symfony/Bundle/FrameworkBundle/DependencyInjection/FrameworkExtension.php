@@ -1803,15 +1803,17 @@ class FrameworkExtension extends Extension
                 throw new LogicException(sprintf('Invalid Messenger configuration: the failure transport "%s" is not a valid transport or service id.', $config['failure_transport']));
             }
 
-            $container->setAlias('messenger.failure_transports.default', $config['failure_transport']);
+            $container->setAlias('messenger.failure_transports.default','messenger.transport.'.$config['failure_transport']);
             $failureTransports[] = $config['failure_transport'];
         }
+        
+        $failureTransportsByName = [];
         foreach ($config['transports'] as $name => $transport) {
-            if (isset($transport['failure_transport']) && !isset($config['transports'][$transport['failure_transport']])) {
-                throw new LogicException(sprintf('Invalid Messenger configuration: the failure transport "%s" is not a valid transport or service id.', $transport['failure_transport']));
-            }
             if ($transport['failure_transport']) {
                 $failureTransports[] = $transport['failure_transport'];
+                $failureTransportsByName[$name] = $transport['failure_transport'];
+            } elseif ($config['failure_transport']) {
+                $failureTransportsByName[$name] = $config['failure_transport'];
             }
         }
 
@@ -1857,16 +1859,22 @@ class FrameworkExtension extends Extension
             $senderReferences[$serviceId] = new Reference($serviceId);
         }
 
-        $failureTransportsByTransportName = [];
+        $failureTransportReferencesByTransportName = array_map(function($failureTransportName) use ($senderReferences) {
+            return $senderReferences[$failureTransportName];
+        }, $failureTransportsByName);
+
+
+        if ($config['failure_transport']) {
+            if (!isset($senderReferences[$config['failure_transport']])) {
+                throw new LogicException(sprintf('Invalid Messenger configuration: the failure transport "%s" is not a valid transport or service id.', $config['failure_transport']));
+            }
+        }
+        
         foreach ($config['transports'] as $name => $transport) {
             if ($transport['failure_transport']) {
-                if (!isset($config['transports'][$transport['failure_transport']])) {
+                if (!isset($senderReferences[$transport['failure_transport']])) {
                     throw new LogicException(sprintf('Invalid Messenger configuration: the failure transport "%s" is not a valid transport or service id.', $transport['failure_transport']));
                 }
-
-                $failureTransportsByTransportName[$name] = $senderReferences[$transport['failure_transport']];
-            } else {
-                $failureTransportsByTransportName[$name] = $senderReferences[$config['failure_transport']] ?? null;
             }
         }
 
@@ -1901,7 +1909,7 @@ class FrameworkExtension extends Extension
             ->replaceArgument(0, $transportRetryReferences);
 
         if (\count($failureTransports) > 0) {
-            $globalFailureReceiverName = $config['failure_transport'] ?? null;
+            $globalFailureReceiverName = $config['failure_transport'];
 
             $container->getDefinition('console.command.messenger_failed_messages_retry')
                 ->replaceArgument(0, $globalFailureReceiverName);
@@ -1910,7 +1918,7 @@ class FrameworkExtension extends Extension
             $container->getDefinition('console.command.messenger_failed_messages_remove')
                 ->replaceArgument(0, $globalFailureReceiverName);
 
-            $failureTransportsByTransportNameServiceLocator = ServiceLocatorTagPass::register($container, $failureTransportsByTransportName);
+            $failureTransportsByTransportNameServiceLocator = ServiceLocatorTagPass::register($container, $failureTransportReferencesByTransportName);
             $container->getDefinition('messenger.failure.send_failed_message_to_failure_transport_listener')
                 ->replaceArgument(0, $failureTransportsByTransportNameServiceLocator);
         } else {
