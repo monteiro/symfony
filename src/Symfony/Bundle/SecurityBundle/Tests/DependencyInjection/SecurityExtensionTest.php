@@ -414,8 +414,8 @@ class SecurityExtensionTest extends TestCase
 
         $this->assertEquals(new Reference('security.user.provider.concrete.second'), $container->getDefinition('security.authentication.switchuser_listener.foobar')->getArgument(1));
     }
-    
-    public function testInvalidAccessControlWithEmptyRow() 
+
+    public function testInvalidAccessControlWithEmptyRow()
     {
         $this->expectException(InvalidConfigurationException::class);
         $this->expectExceptionMessage('There is an empty access control attributes set.');
@@ -433,7 +433,7 @@ class SecurityExtensionTest extends TestCase
             ],
             'access_control' => [
                 [],
-                ['path' => '/admin', 'roles' => 'ROLE_ADMIN']
+                ['path' => '/admin', 'roles' => 'ROLE_ADMIN'],
             ],
         ]);
 
