@@ -417,8 +417,6 @@ class SecurityExtensionTest extends TestCase
 
     public function testInvalidAccessControlWithEmptyRow()
     {
-        $this->expectException(InvalidConfigurationException::class);
-        $this->expectExceptionMessage('There is an empty access control attributes set.');
         $container = $this->getRawContainer();
 
         $container->loadFromExtension('security', [
@@ -437,6 +435,8 @@ class SecurityExtensionTest extends TestCase
             ],
         ]);
 
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('There is an empty access control attributes set.');
         $container->compile();
     }
 
