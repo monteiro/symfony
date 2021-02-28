@@ -414,6 +414,31 @@ class SecurityExtensionTest extends TestCase
 
         $this->assertEquals(new Reference('security.user.provider.concrete.second'), $container->getDefinition('security.authentication.switchuser_listener.foobar')->getArgument(1));
     }
+    
+    public function testInvalidAccessControlWithEmptyRow() 
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('There is an empty access control attributes set.');
+        $container = $this->getRawContainer();
+
+        $container->loadFromExtension('security', [
+            'providers' => [
+                'default' => ['id' => 'foo'],
+            ],
+            'firewalls' => [
+                'some_firewall' => [
+                    'pattern' => '/.*',
+                    'http_basic' => [],
+                ],
+            ],
+            'access_control' => [
+                [],
+                ['path' => '/admin', 'roles' => 'ROLE_ADMIN']
+            ],
+        ]);
+
+        $container->compile();
+    }
 
     protected function getRawContainer()
     {
